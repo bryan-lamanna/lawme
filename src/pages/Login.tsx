@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, Mail, Lock, ArrowRight, X } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logotipo.png';
+import { CircularProgress } from '@mui/material'; // Import do loading do Material-UI
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const { 
+    user,
     login, 
     register, 
     signInWithGoogle, 
@@ -18,36 +20,55 @@ export default function Login() {
     loading 
   } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redireciona para a página de destino se o usuário já estiver autenticado
+  useEffect(() => {
+    if (user) {
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {  
     e.preventDefault();
+    clearError();
+    
     try {
       if (isRegistering) {
         await register(email, password);
       } else {
         await login(email, password);
       }
-      navigate('/dashboard');
+      // O redirecionamento agora é tratado pelo useEffect acima
     } catch (error) {
-      // O erro já é tratado no AuthContext e disponibilizado via useAuth()
       console.error('Authentication error:', error);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    clearError();
     try {
       await signInWithGoogle();
-      navigate('/dashboard');
+      // O redirecionamento agora é tratado pelo useEffect acima
     } catch (error) {
       console.error('Google sign-in error:', error);
     }
   };
 
-  // Limpa erros quando alterna entre login e registro
   const toggleRegister = () => {
     clearError();
     setIsRegistering(!isRegistering);
   };
+
+  // Se já estiver autenticado, mostra um loading enquanto redireciona
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-800 flex items-center justify-center">
+        <CircularProgress style={{ color: '#ffffff' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-800 flex items-center justify-center p-4">
@@ -136,7 +157,7 @@ export default function Login() {
               }`}
             >
               {loading ? (
-                <span>Carregando...</span>
+                <CircularProgress size={24} style={{ color: '#ffffff' }} />
               ) : (
                 <>
                   {isRegistering ? 'Cadastrar' : 'Entrar'}
@@ -163,8 +184,14 @@ export default function Login() {
               loading ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-600'
             }`}
           >
-            <FcGoogle className="h-5 w-5 mr-2" />
-            Continuar com Google
+            {loading ? (
+              <CircularProgress size={24} style={{ color: '#ffffff' }} />
+            ) : (
+              <>
+                <FcGoogle className="h-5 w-5 mr-2" />
+                Continuar com Google
+              </>
+            )}
           </button>
 
           {/* Alternar entre Login/Cadastro */}

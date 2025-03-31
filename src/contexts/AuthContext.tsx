@@ -65,6 +65,44 @@ const getFriendlyErrorMessage = (error: AuthError): AuthErrorType => {
   };
 };
 
+// Função para salvar o usuário no LocalStorage
+const saveUserToLocalStorage = (user: User | null) => {
+  if (user) {
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      // Adicione outros dados do usuário que você queira persistir
+    };
+    localStorage.setItem('user', JSON.stringify(userData));
+  } else {
+    localStorage.removeItem('user');
+  }
+};
+
+// Função para carregar o usuário do LocalStorage
+const loadUserFromLocalStorage = (): User | null => {
+  const userData = localStorage.getItem('user');
+  if (!userData) return null;
+
+  try {
+    const parsedData = JSON.parse(userData);
+    // Retorna um objeto que simula um User do Firebase
+    return {
+      uid: parsedData.uid,
+      email: parsedData.email,
+      displayName: parsedData.displayName,
+      photoURL: parsedData.photoURL,
+      // Outras propriedades necessárias
+      // Note: este não é um User real do Firebase, apenas um objeto com os dados
+    } as User;
+  } catch (error) {
+    console.error('Failed to parse user data from localStorage', error);
+    return null;
+  }
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -74,13 +112,21 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(loadUserFromLocalStorage());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthErrorType | null>(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        // Usuário autenticado no Firebase
+        setUser(firebaseUser);
+        saveUserToLocalStorage(firebaseUser);
+      } else {
+        // Usuário não autenticado
+        setUser(null);
+        saveUserToLocalStorage(null);
+      }
       setLoading(false);
       setError(null); // Limpa erros quando o estado de autenticação muda
     });
@@ -137,6 +183,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       await signOut(auth);
+      setUser(null);
+      saveUserToLocalStorage(null);
     } catch (error) {
       const authError = getFriendlyErrorMessage(error as AuthError);
       setError(authError);
