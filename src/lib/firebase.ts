@@ -1,7 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
+// Configuração do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBTmkIuaO9lxay-4oUYFyPFDb4M7rfvIso",
   authDomain: "lawme-da3af.firebaseapp.com",
@@ -12,9 +14,24 @@ const firebaseConfig = {
   measurementId: "G-8GLKW76C86"
 };
 
+// Inicialização do Firebase
 const app = initializeApp(firebaseConfig);
+
+// Serviços do Firebase
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-export { auth, googleProvider };
+// Configurações adicionais do provedor Google
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+export { 
+  app,
+  auth,
+  db,
+  googleProvider,
+  analytics
+};

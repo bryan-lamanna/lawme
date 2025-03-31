@@ -188,63 +188,7 @@ export default function Dashboard() {
 
               {/* Feed Items */}
               <div className="space-y-3 md:space-y-4">
-                {/* Example Post 1 */}
-                <div className="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-xl p-3 md:p-4 border border-gray-700">
-                  <div className="flex items-start space-x-2 md:space-x-3">
-                    <div className="h-8 md:h-10 w-8 md:w-10 rounded-full bg-indigo-600 flex items-center justify-center">
-                      J
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-sm md:text-base">João Silva</h3>
-                          <p className="text-xs text-gray-400">2 horas atrás</p>
-                        </div>
-                        <button className="text-gray-400 hover:text-white">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 md:h-5 w-4 md:w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                          </svg>
-                        </button>
-                      </div>
-                      <p className="mt-1 md:mt-2 text-sm md:text-base">Acabei de atualizar o processo #12345 com novos documentos. Por favor, revisem quando possível.</p>
-                      <div className="flex items-center mt-2 md:mt-4 space-x-2 md:space-x-4 text-gray-400 text-xs md:text-sm">
-                        <button className="flex items-center space-x-1 hover:text-indigo-400">
-                          <MessageSquare className="h-3 md:h-4 w-3 md:w-4" />
-                          <span>3 comentários</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Example Post 2 */}
-                <div className="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-xl p-3 md:p-4 border border-gray-700">
-                  <div className="flex items-start space-x-2 md:space-x-3">
-                    <div className="h-8 md:h-10 w-8 md:w-10 rounded-full bg-pink-600 flex items-center justify-center">
-                      M
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-sm md:text-base">Maria Souza</h3>
-                          <p className="text-xs text-gray-400">Ontem</p>
-                        </div>
-                        <button className="text-gray-400 hover:text-white">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 md:h-5 w-4 md:w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                          </svg>
-                        </button>
-                      </div>
-                      <p className="mt-1 md:mt-2 text-sm md:text-base">Lembrete: Reunião com o cliente ABC Corp amanhã às 10h. Por favor, preparem os documentos necessários.</p>
-                      <div className="flex items-center mt-2 md:mt-4 space-x-2 md:space-x-4 text-gray-400 text-xs md:text-sm">
-                        <button className="flex items-center space-x-1 hover:text-indigo-400">
-                          <MessageSquare className="h-3 md:h-4 w-3 md:w-4" />
-                          <span>5 comentários</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          
               </div>
             </div>
 

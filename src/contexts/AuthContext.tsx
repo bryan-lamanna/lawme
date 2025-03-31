@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthError } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth, googleProvider, db } from '../lib/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 // Tipos para os erros de autenticação
 export type AuthErrorType = {
@@ -9,8 +10,21 @@ export type AuthErrorType = {
   userFriendlyMessage: string;
 };
 
+interface UserAdditionalData {
+  userType: 'client' | 'lawyer' | null;
+  fullName: string;
+  phone: string;
+  cpf: string;
+  interests?: string[];
+  oabNumber?: string;
+  oabState?: string;
+  specializations?: string[];
+  completedRegistration: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
+  userData: UserAdditionalData | null;
   loading: boolean;
   error: AuthErrorType | null;
   clearError: () => void;
@@ -18,6 +32,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  saveAdditionalData: (data: Omit<UserAdditionalData, 'completedRegistration'>) => Promise<void>;
+  checkRegistrationComplete: () => Promise<boolean>;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -65,44 +82,6 @@ const getFriendlyErrorMessage = (error: AuthError): AuthErrorType => {
   };
 };
 
-// Função para salvar o usuário no LocalStorage
-const saveUserToLocalStorage = (user: User | null) => {
-  if (user) {
-    const userData = {
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      // Adicione outros dados do usuário que você queira persistir
-    };
-    localStorage.setItem('user', JSON.stringify(userData));
-  } else {
-    localStorage.removeItem('user');
-  }
-};
-
-// Função para carregar o usuário do LocalStorage
-const loadUserFromLocalStorage = (): User | null => {
-  const userData = localStorage.getItem('user');
-  if (!userData) return null;
-
-  try {
-    const parsedData = JSON.parse(userData);
-    // Retorna um objeto que simula um User do Firebase
-    return {
-      uid: parsedData.uid,
-      email: parsedData.email,
-      displayName: parsedData.displayName,
-      photoURL: parsedData.photoURL,
-      // Outras propriedades necessárias
-      // Note: este não é um User real do Firebase, apenas um objeto com os dados
-    } as User;
-  } catch (error) {
-    console.error('Failed to parse user data from localStorage', error);
-    return null;
-  }
-};
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -112,23 +91,86 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(loadUserFromLocalStorage());
+  const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserAdditionalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthErrorType | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      if (firebaseUser) {
-        // Usuário autenticado no Firebase
-        setUser(firebaseUser);
-        saveUserToLocalStorage(firebaseUser);
-      } else {
-        // Usuário não autenticado
-        setUser(null);
-        saveUserToLocalStorage(null);
+  // Função para carregar dados adicionais do Firestore
+  const loadUserData = async (userId: string) => {
+    try {
+      const docRef = doc(db, 'users', userId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data() as UserAdditionalData;
+        setUserData(data);
+        return data;
       }
+      return null;
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      return null;
+    }
+  };
+
+  // Função para verificar se o registro está completo
+  const checkRegistrationComplete = async () => {
+    if (!user) return false;
+    
+    const data = await loadUserData(user.uid);
+    return data?.completedRegistration || false;
+  };
+
+  // Função para salvar dados adicionais
+  const saveAdditionalData = async (data: Omit<UserAdditionalData, 'completedRegistration'>): Promise<void> => {
+    if (!user) throw new Error("User not authenticated");
+    setLoading(true);
+  
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userData = {
+        ...data,
+        completedRegistration: true,
+        email: user.email,
+        lastUpdated: new Date()
+      };
+  
+      await setDoc(userRef, userData, { merge: true });
+      setUserData(userData);
+      // Removido o "return true" que estava aqui
+    } catch (error) {
+      console.error("Error saving user data:", error);
+      throw error;
+    } finally {
       setLoading(false);
-      setError(null); // Limpa erros quando o estado de autenticação muda
+    }
+  };
+
+  // Função para atualizar os dados do usuário
+  const refreshUserData = async () => {
+    if (user) {
+      await loadUserData(user.uid);
+    }
+  };
+
+  // Efeito principal para gerenciar autenticação
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          await loadUserData(firebaseUser.uid);
+        } else {
+          setUser(null);
+          setUserData(null);
+        }
+      } catch (error) {
+        console.error("Error in auth state change:", error);
+      } finally {
+        setLoading(false);
+        setError(null);
+      }
     });
 
     return unsubscribe;
@@ -184,7 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOut(auth);
       setUser(null);
-      saveUserToLocalStorage(null);
+      setUserData(null);
     } catch (error) {
       const authError = getFriendlyErrorMessage(error as AuthError);
       setError(authError);
@@ -196,6 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     user,
+    userData,
     loading,
     error,
     clearError,
@@ -203,6 +246,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     register,
     login,
+    saveAdditionalData,
+    checkRegistrationComplete,
+    refreshUserData
   };
 
   return (
